@@ -5,6 +5,7 @@ import ImageUpload from "./components/ImageUpload";
 import Post from "./components/Post";
 import { auth, db } from "./config/firebase";
 import InstagramEmbed from "react-instagram-embed";
+import axios from "./axios";
 
 function getModalStyle() {
   const top = 50;
@@ -53,16 +54,13 @@ function App() {
   }, [user, username]);
 
   useEffect(() => {
-    db.collection("posts")
-      .orderBy("timestamp", "desc")
-      .onSnapshot((snapshot) => {
-        setPosts(
-          snapshot.docs.map((doc) => ({
-            id: doc.id,
-            post: doc.data(),
-          }))
-        );
+    const fetchPosts = async () =>
+      await axios.get("/sync").then((response) => {
+        console.log("👉", response);
+        setPosts(response.data);
       });
+
+    fetchPosts();
   }, []);
 
   const signUp = (e) => {
@@ -175,16 +173,14 @@ function App() {
 
       <div className="app__posts">
         <div className="app__postsLeft">
-          {posts.map(({ id, post }) => (
+          {posts.map((post) => (
             <Post
-              key={id}
-              postId={id}
+              key={post._id}
+              postId={post._id}
               user={user}
-              username={post.username}
+              username={post.user}
               caption={post.caption}
-              imageUrl={post.imageUrl}
-              liked={post.liked}
-              likeCount={post.likeCount}
+              imageUrl={post.image}
             />
           ))}
         </div>

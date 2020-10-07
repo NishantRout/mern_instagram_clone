@@ -8,6 +8,15 @@ import dbModel from "./dbModel.js";
 const app = express();
 const port = process.env.PORT || 8080;
 
+//pusher
+const pusher = new Pusher({
+  appId: "1085888",
+  key: "abf2c31543fa89d14fb1",
+  secret: "7358f4f30cae75b90411",
+  cluster: "ap2",
+  useTLS: true,
+});
+
 //middlewares
 app.use(express.json());
 app.use(cors());
@@ -23,6 +32,27 @@ mongoose.connect(connection_url, {
 
 mongoose.connection.once("open", () => {
   console.log("Connected To DB");
+
+  const changeStream = mongoose.connection.collection("posts").watch();
+
+  changeStream.on("change", (change) => {
+    console.log("Change triggered on pusher...");
+    console.log(change);
+    console.log("End of change");
+
+    if (change.operationType === "insert") {
+      console.log("Triggering pusher IMG upload");
+
+      const postDetails = change.fullDocument;
+      pusher.trigger("posts", "inserted", {
+        user: postDetails.user,
+        caption: postDetails.caption,
+        image: postDetails.image,
+      });
+    } else {
+      console.log("Unknown trigger from pusher");
+    }
+  });
 });
 
 //api routes
