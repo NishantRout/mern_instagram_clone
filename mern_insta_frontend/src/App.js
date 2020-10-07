@@ -6,6 +6,7 @@ import Post from "./components/Post";
 import { auth, db } from "./config/firebase";
 import InstagramEmbed from "react-instagram-embed";
 import axios from "./axios";
+import Pusher from "pusher-js";
 
 function getModalStyle() {
   const top = 50;
@@ -53,13 +54,24 @@ function App() {
     };
   }, [user, username]);
 
-  useEffect(() => {
-    const fetchPosts = async () =>
-      await axios.get("/sync").then((response) => {
-        console.log("👉", response);
-        setPosts(response.data);
-      });
+  const fetchPosts = async () =>
+    await axios.get("/sync").then((response) => {
+      console.log("👉", response);
+      setPosts(response.data);
+    });
 
+  useEffect(() => {
+    const pusher = new Pusher("abf2c31543fa89d14fb1", {
+      cluster: "ap2",
+    });
+
+    const channel = pusher.subscribe("posts");
+    channel.bind("inserted", (data) => {
+      fetchPosts();
+    });
+  }, []);
+
+  useEffect(() => {
     fetchPosts();
   }, []);
 
